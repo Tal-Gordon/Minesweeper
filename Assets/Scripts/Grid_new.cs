@@ -5,18 +5,26 @@ using static UnityEngine.Rendering.DebugUI.Table;
 
 public class Grid_new : MonoBehaviour
 {
+    public GameObject squarePrefab;
+
     public int width;
     public int height;
     public static int[,] squares;
-    public GameObject squarePrefab;
+
+    private Camera mainCamera;
+
+    private float squareSize = 1f;
+    private float margin = 1f;
 
     const int FLAG = -2;
     const int MINE = -1;
-    const int NOMINE = 0;
+    const int EMPTY = 0;
 
     void Start()
     {
-        GenerateGrid();
+        mainCamera = Camera.main;
+        GenerateTruthGrid();
+        GenerateGameGrid();
     }
 
     // Update is called once per frame
@@ -25,7 +33,7 @@ public class Grid_new : MonoBehaviour
         
     }
 
-    private void GenerateGrid()
+    private void GenerateTruthGrid()
     {
         squares = new int[width, height];
         List<(int, int)> mines = new();
@@ -33,7 +41,7 @@ public class Grid_new : MonoBehaviour
         {
             for (int j = 0; j < height; j++)
             {
-                squares[i, j] = NOMINE;
+                squares[i, j] = EMPTY;
                 if (RandBool(0.2f)) // TODO: dont hardcode, should change according to difficulty
                 {
                     squares[i, j] = MINE;
@@ -45,6 +53,20 @@ public class Grid_new : MonoBehaviour
         foreach ((int, int) mine  in mines)
         {
             IncrementNumbersAroundMine(mine.Item1, mine.Item2);
+        }
+    }
+
+    private void GenerateGameGrid()
+    {
+        Vector2 gridOrigin = new Vector2(-(width - 1) * squareSize / 2f, -(height - 1) * squareSize / 2f);
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Vector2 spawnPos = gridOrigin + new Vector2(x * squareSize, y * squareSize);
+                Instantiate(squarePrefab, spawnPos, Quaternion.identity, transform);
+            }
         }
     }
 
