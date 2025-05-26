@@ -163,9 +163,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a33ade7ea043e344590676abe8eb83db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  squarePrefab: {fileID: 0}
+  squarePrefab: {fileID: 1204917834916508108, guid: 7b875677e73bcec4fa21e52bc38dabc2, type: 3}
   width: 20
   height: 20
+  numOfMines: 80
 --- !u!1 &2073790893
 GameObject:
   m_ObjectHideFlags: 0
@@ -273,7 +274,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   zoomSpeed: 20
-  minCamSize: 5
+  minCamSize: 1
   maxCamSize: 20
 --- !u!114 &2073790898
 MonoBehaviour:
