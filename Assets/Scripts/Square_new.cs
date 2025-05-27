@@ -42,12 +42,17 @@ public class Square_new : MonoBehaviour
     {
         gameManager.SetEmptyBeginningSquaresAndTruth(coordinates.x, coordinates.y);
 
-        if (isMine && !isFlagged)
+        if (isFlagged || isOpen)
+        {
+            return;
+        }
+
+        if (isMine)
         {
             gameManager.OpenGrid();
             isOpen = true;
         }
-        else if (!isFlagged && !isOpen)
+        else
         {
             spriteRenderer.sprite = squareOpenedEmpty;
             isOpen = true;
@@ -75,8 +80,11 @@ public class Square_new : MonoBehaviour
 
     private void ToggleFlag()
     {
-        isFlagged = !isFlagged;
-        spriteRenderer.sprite = isFlagged ? squareUnopenedFlag: squareUnopened;
+        if (!isOpen) 
+        { 
+            isFlagged = !isFlagged;
+            spriteRenderer.sprite = isFlagged ? squareUnopenedFlag: squareUnopened;
+        }
     }
 
     private void OnMouseOver()
@@ -85,16 +93,13 @@ public class Square_new : MonoBehaviour
         {
             OpenSquare();
         }
-        else if (Input.GetMouseButtonDown(1) && !isOpen)
+        else if (Input.GetMouseButtonDown(1))
         {
             ToggleFlag();
         }
-        //else if (Input.GetMouseButtonDown(2) && opened)
-        //{
-        //    int x = (int)transform.position.x;
-        //    int y = (int)transform.position.y;
-        //    if (Grid.GetFlagsAround(x, y).ToString() == mines_around.text)
-        //        Grid.OpenAround(x, y);
-        //}
+        else if (Input.GetMouseButtonDown(2))
+        {
+            gameManager.Chording(coordinates.x, coordinates.y);
+        }
     }
 }

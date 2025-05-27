@@ -95,25 +95,12 @@ public class GameManager : MonoBehaviour
     {
         if (isFirstSquareOpened) { return; }
 
-        emptyBeginningSquares = new()
+        emptyBeginningSquares = new() { new int2(x, y) };
+
+        ForEachNeighbor(x, y, width, height, (nx, ny) =>
         {
-            // immediately add x, y
-            new int2(x, y)
-        };
-
-        int[] dx = { -1, 0, 1, -1, 1, -1, 0, 1 };
-        int[] dy = { -1, -1, -1, 0, 0, 1, 1, 1 };
-
-        for (int i = 0; i < dx.Length; i++)
-        {
-            int neighborX = x + dx[i];
-            int neighborY = y + dy[i];
-
-            if (IsWithinGrid(neighborX, neighborY))
-            {
-                emptyBeginningSquares.Add(new int2(neighborX, neighborY));
-            }
-        }
+            emptyBeginningSquares.Add(new int2(nx, ny));
+        });
 
         GenerateTruthGrid();
         isFirstSquareOpened = true;
@@ -138,100 +125,98 @@ public class GameManager : MonoBehaviour
 
     private void IncrementNumbersAroundMine(int x, int y)
     {
-        // this feels stupid but i cant find anything better
-        int[] dx = { -1, 0, 1, -1, 1, -1, 0, 1 };
-        int[] dy = { -1, -1, -1, 0, 0, 1, 1, 1 };
-
-        for (int i = 0; i < dx.Length; i++)
+        ForEachNeighbor(x, y, width, height, (nx, ny) =>
         {
-            int neighborX = x + dx[i];
-            int neighborY = y + dy[i];
-
-            if (IsWithinGrid(neighborX, neighborY) && TruthGrid[neighborX, neighborY] != MINE)
+            if (TruthGrid[nx, ny] != MINE)
             {
-                TruthGrid[neighborX, neighborY]++;
+                TruthGrid[nx, ny]++;
             }
-        }
+        });
     }
 
-    public void FloodFill(int startX, int startY)
+    public void FloodFill(int x, int y)
     {
-        if (!IsWithinGrid(startX, startY)) return;
-
-        Queue<int2> queue = new();
         bool[,] visited = new bool[width, height];
-        queue.Enqueue(new int2(startX, startY));
+        FloodFillRecursive(x, y, visited);
+    }
 
-        while (queue.Count > 0)
+    private void FloodFillRecursive(int x, int y, bool[,] visited)
+    {
+        if (!IsWithinGrid(x, y, width, height) || visited[x, y])
+            return;
+
+        visited[x, y] = true;
+        gridGO[x, y].RevealSquare();
+
+        // Recurse only if the current tile is EMPTY
+        if (truthGrid[x, y] == EMPTY)
         {
-            int2 current = queue.Dequeue();
-            int x = current.x;
-            int y = current.y;
-
-            if (!IsWithinGrid(x, y) || visited[x, y])
-                continue;
-
-            visited[x, y] = true;
-            gridGO[x, y].RevealSquare();
-
-            // Only enqueue neighbors if this tile is EMPTY
-            if (truthGrid[x, y] == EMPTY)
+            ForEachNeighbor(x, y, width, height, (nx, ny) =>
             {
-                for (int dx = -1; dx <= 1; dx++)
+                if (!visited[nx, ny])
                 {
-                    for (int dy = -1; dy <= 1; dy++)
-                    {
-                        if (dx == 0 && dy == 0) continue;
-                        int nx = x + dx;
-                        int ny = y + dy;
-                        if (IsWithinGrid(nx, ny) && !visited[nx, ny])
-                        {
-                            queue.Enqueue(new int2(nx, ny));
-                        }
-                    }
+                    FloodFillRecursive(nx, ny, visited);
                 }
-            }
+            });
         }
     }
 
     public void RemoveMineOnFirstSquare(int x, int y)
     {
-        if (!isFirstSquareOpened && IsMineAt(x, y))
+        if (!isFirstSquareOpened && TryIsMineAt(x, y, out bool isMine) && isMine)
         {
             truthGrid[x, y] = EMPTY;
             gridGO[x, y].isMine = false;
             numOfMines--;
 
             // update surrounding numbers
-            for (int dx = -1; dx <= 1; dx++)
+            ForEachNeighbor(x, y, width, height, (nx, ny) =>
             {
-                for (int dy = -1; dy <= 1; dy++)
+                if (TruthGrid[nx, ny] != MINE)
                 {
-                    if (dx == 0 && dy == 0) continue;
-                    int nx = x + dx;
-                    int ny = y + dy;
-                    if (IsWithinGrid(nx, ny) && truthGrid[nx, ny] != MINE)
-                    {
-                        truthGrid[nx, ny]--;
-                    }
+                    TruthGrid[nx, ny]--;
                 }
-            }
+            });
         }
         isFirstSquareOpened = true;
     }
 
-    private bool IsMineAt(int x, int y)
+    private bool TryIsMineAt(int x, int y, out bool isMine)
     {
-        if (IsWithinGrid(x, y))
+        if (IsWithinGrid(x, y, width, height))
         {
-            return (TruthGrid[x, y] == MINE);
+            isMine = (TruthGrid[x, y] == MINE);
+            return true;
         }
+
+        isMine = false;
         return false;
     }
 
-    private bool IsWithinGrid(int x, int y)
+    public void Chording(int x, int y) // open squares around numbers where correct number of flags has been set
     {
-        return (x >= 0 && y >= 0 && x < width && y < height);
+        Square_new square = gridGO[x, y];
+        if (!square.isFlagged && square.isOpen)
+        {
+            int squareNumber = truthGrid[x, y];
+            int flagsAroundSquare = 0;
+
+            ForEachNeighbor(x, y, width, height, (nx, ny) =>
+            {
+                if (gridGO[nx, ny].isFlagged)
+                {
+                    flagsAroundSquare++;
+                }
+            });
+
+            if (flagsAroundSquare == squareNumber) // only if EXACT number
+            {
+                ForEachNeighbor(x, y, width, height, (nx, ny) =>
+                {
+                    gridGO[nx, ny].OpenSquare();
+                });
+            }
+        }
     }
 
     private void CenterCamera()
