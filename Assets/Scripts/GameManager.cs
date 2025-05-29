@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
@@ -10,7 +10,8 @@ public class GameManager : MonoBehaviour
 
     public int width;
     public int height;
-    public int numOfMines = 80;
+    [SerializeField] private int numOfMines = 80;
+    public event Action<int> OnMineCountChanged;
 
     private Camera mainCamera;
     private Square_new[,] gridGO;
@@ -22,12 +23,26 @@ public class GameManager : MonoBehaviour
     private readonly float margin = 1f;
 
     public int[,] TruthGrid { get => truthGrid; private set => truthGrid = value; }
+    public int NumOfMines 
+    { 
+        get => numOfMines;
+        private set
+        {
+            if (numOfMines != value) // only trigger if the value actually changes
+            {
+                numOfMines = value;
+                OnMineCountChanged?.Invoke(numOfMines); // notify observers
+                // ?. (null-conditional operator) ensures that the event is only invoked if there are subscribers, preventing a NullReferenceException
+            }
+        }
+    }
 
     void Start()
     {
         mainCamera = Camera.main;
         GenerateGameGrid();
         CenterCamera();
+        OnMineCountChanged?.Invoke(NumOfMines);
     }
 
     void Update()
@@ -60,10 +75,10 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        List<int2> mines = new(numOfMines);
+        List<int2> mines = new(NumOfMines);
         var rand = new System.Random();
 
-        while (mines.Count < numOfMines)
+        while (mines.Count < NumOfMines)
         {
             int x = rand.Next(0, width);
             int y = rand.Next(0, height);
@@ -167,7 +182,7 @@ public class GameManager : MonoBehaviour
         {
             truthGrid[x, y] = EMPTY;
             gridGO[x, y].isMine = false;
-            numOfMines--;
+            NumOfMines--;
 
             // update surrounding numbers
             ForEachNeighbor(x, y, width, height, (nx, ny) =>
@@ -217,6 +232,16 @@ public class GameManager : MonoBehaviour
                 });
             }
         }
+    }
+
+    public void IncrementMineCounter()
+    {
+        NumOfMines++;
+    }
+
+    public void DecrementMineCounter()
+    {
+        NumOfMines--;
     }
 
     private void CenterCamera()

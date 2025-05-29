@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
@@ -83,7 +84,8 @@ public class Square_new : MonoBehaviour
         if (!isOpen) 
         { 
             isFlagged = !isFlagged;
-            spriteRenderer.sprite = isFlagged ? squareUnopenedFlag: squareUnopened;
+            spriteRenderer.sprite = isFlagged ? squareUnopenedFlag : squareUnopened;
+            (isFlagged ? (Action)gameManager.DecrementMineCounter : (Action)gameManager.IncrementMineCounter)(); // apparently that's allowed
         }
     }
 
